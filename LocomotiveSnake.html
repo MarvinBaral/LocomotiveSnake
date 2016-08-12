@@ -1,0 +1,287 @@
+	<head>
+		<style>
+			table#field {
+				border-collapse: collapse;
+				border: none;
+				background-color: #22B14C; //rgb 34 177 76
+				margin: 0px;
+				margin-left: auto;
+				margin-right: auto;
+			}
+			table#field td {
+				width: 50px;
+				height: 50px;
+			}
+			#stats {
+				width: auto;
+				text-align: center;
+			}
+			td.unmarked {
+				background-color: none;
+			}
+			td.marked {
+        			border-radius: 100%;
+        			background-color: red;
+        			transition: background-color 1000ms;
+			}
+			td.locomotive{
+				background-image: url(/img/locomotive.png);
+				background-positon: right;
+			}
+			td.waggon {
+				background-image: url(/img/waggon.png);
+				background-positon: right;
+			}
+		</style>
+		<script>
+      			"use strict";
+			var tableRows = [];
+			var trainPositions = [];
+			var trainLength;
+			var movementX;
+			var movementY;
+			var fieldWidth;
+			var fieldHeight;
+			var delay;
+			var delayStep;
+			var cssLocomotive = 'locomotive';
+			var cssWaggon = 'waggon';
+			var cssUnmarked = 'unmarked';
+			var addCar = false;
+			var numOfLocomotives;
+			var posTrailSave = [];
+			var posStation = [];
+			var carLength;
+			var counter;
+			var idStats;
+			var table;
+					
+						//=============================SupportFunctions=========================================
+				
+ 			function init(){
+				movementX = 1;
+				movementY = 0;
+				trainPositions = [[1,0,0],[0,0,0]];
+				trainLength = trainPositions.length;
+				delay = 250;
+				delayStep = 50;
+				fieldWidth = 20;
+				fieldHeight = 10;
+				numOfLocomotives = 1;
+				posTrailSave = trainPositions[1];
+				reposStation(); //the red dot
+				carLength = 2;
+				counter = 0;
+				idStats = document.getElementById("stats");
+					table = document.getElementById("field");
+			}
+
+			function addElementAtNewPos(){
+				var newPosition = [trainPositions[0][0] + movementX, trainPositions[0][1] + movementY];
+				trainPositions.unshift(newPosition);
+				trainLength = trainPositions.length;
+			}
+			
+			function calcDegreeByDirection(dirX, dirY){
+				//standard: right
+				//calculation with  only one dir set to non zero
+				var degree = 90 * dirY;
+				if(dirX === -1){
+					degree = 180;
+				}
+				return degree;
+			}
+	
+			function rotate(positions, degree){
+				tableRows[positions[1]][positions[0]].style.transform = "rotate(" + degree + "deg)";
+				positions[2] = degree; //tableRows[positions[1]][positions[0]].style.rotation = degree;
+			}
+
+			function alignBackground(positions, alignment){
+				switch(alignment){
+					case 0: 
+						alignment = "right";
+						break;
+					case 1:
+						alignment = "left";
+						break;
+			}
+        tableRows[positions[1]][positions[0]].style.backgroundPosition = alignment;
+			}
+
+			function setColor(positions, className){
+				tableRows[positions[1]][positions[0]].className = className;
+			}
+			
+			function setImage(positions, image){
+        tableRows[positions[1]][positions[0]].style.backgroundImage = "url(" + image + ")";
+      }
+      
+      function gameover(showMsgBox, reason){
+        showMsgBox = showMsgBox || false; //the way to assign default parameters in javascript
+        reason = reason || "";
+        trainLength = Math.ceil(trainPositions.length / 2);
+        if(showMsgBox){
+          alert("Gameover.\n" + reason + "Deine Zuglänge: " + trainPositions.length / 2);
+        }
+        console.log(trainLength);
+        location.reload();
+      }
+      
+      function drawLocomotive(){
+        for(var i = 0; i < 2; i++){
+          setColor(trainPositions[i], cssLocomotive);
+          alignBackground(trainPositions[i], i % 2);
+        }
+      }
+			
+			function reposStation(){
+        var save = posStation;
+        posStation = [Math.round(Math.random() * (fieldWidth - 1)), Math.round(Math.random() * (fieldHeight-1))];
+        return save;
+			}
+			
+      //=============================Actual code=========================================
+				
+			function step(){
+        counter++;
+        if(trainPositions[0][0] == posStation[0] && trainPositions[0][1] == posStation[1]){
+          addCar = true;
+          reposStation();
+          var numOfWagons = trainPositions.length / 2;
+          if(numOfWagons % 15 == 0){
+            numOfLocomotives++;
+          }
+        }else{
+          setColor(posStation, 'marked');
+        }
+        
+        addElementAtNewPos();
+        if(addCar){
+          trainPositions.push(posTrailSave); //addElementAtNewPos();
+          addCar = false;
+				}else{
+          posTrailSave = trainPositions.pop();
+          setColor(posTrailSave, cssUnmarked); //remove last element and reset its color
+          trainLength = trainPositions.length;
+        }
+         
+        //check whether out of filed
+				if(trainPositions[0][0] > (fieldWidth - 1) || trainPositions[0][0] < 0 || trainPositions[0][1] > (fieldHeight - 1) || trainPositions[0][1] < 0){
+          gameover();
+				}else{
+          //check collision
+          for(var index = 1; index < trainLength; index++){
+            if(trainPositions[0][0] == trainPositions[index][0] && trainPositions[0][1] == trainPositions[index][1]){
+              gameover(true, "Du hast deinen eigenen Zug getroffen\n");
+            }
+          }
+          
+          //update train 
+          var rotation = calcDegreeByDirection(movementX, movementY);
+          rotate(trainPositions[0], rotation);
+          for(var index = 0; index < trainLength; index++){
+            alignBackground(trainPositions[index], index % 2);
+            if(index < numOfLocomotives * 2){
+              setColor(trainPositions[index], cssLocomotive);
+            }else{
+              setColor(trainPositions[index], cssWaggon);            
+            }
+            //make rotation correct
+            if(index % 2 == 0){
+              var rotation = calcDegreeByDirection(trainPositions[index][0] - trainPositions[index + 1][0], trainPositions[index][1] - trainPositions[index + 1][1]);
+              rotate(trainPositions[index], rotation);
+              rotate(trainPositions[index + 1], rotation);
+            }
+          }
+        }
+        idStats.innerHTML = "Aktuelle Zuglänge: " + Math.ceil(trainLength / 2) + "<br>Dauer dieses Spieles: " + Math.round(counter * delay / 1000) + "s";
+        setTimeout(step, delay);
+			}
+			
+			//=============================Interrupts=========================================
+			
+			window.onload = function(){
+			        init();
+				for(var i = 0; i < fieldHeight; i++){
+					var tr = document.createElement('tr');
+					var tableDivs = []; 
+					for(var x = 0; x < fieldWidth; x++){
+						var td = document.createElement('td');
+						tr.appendChild(td);
+						tableDivs.push(td);
+					}
+					table.appendChild(tr);
+					tableRows.push(tableDivs);
+				}
+				drawLocomotive();
+				setTimeout(step, delay);
+			};
+			
+			//set variables on user input
+			window.onkeydown = function(ev){
+				var keyCode = ev.keyCode;
+				switch(keyCode){
+				case 65:  //a
+				case 37:  //left
+					movementX = -1;
+					movementY = 0;
+					break;
+				case 68:  //d
+				case 39:  //right
+					movementX = 1;
+					movementY = 0;
+					break;
+				case 87:  //w
+				case 38:  //up
+					movementX = 0;
+					movementY = -1; //computers have x-coords from above
+					break; 
+				case 83:  //s
+				case 40:  //down
+					movementX = 0;
+					movementY = 1;
+					break;
+				case 112: //F1
+					delay -= delayStep;
+					if(delay < 0){
+						delay = 1;
+					}
+					break;
+				case 113: //F2
+					delay += delayStep;
+					break;
+				case 118: //F7
+					addCar = true;
+					break;
+				case 119: //F8
+					addCar = true;
+					numOfLocomotives++;
+					break;
+				case 80: //P
+					alert("Das Spiel wurde pausiert.\nZum Fortfahren Enter drücken");
+					break;
+				default: 
+					//alert('unknown key:' + keyCode);
+				}				
+				//nice functions:
+				/*
+				console.log(positions.length);
+				document.createElement('table');
+				document.body.appendChild(table);
+				*/
+			}
+		</script>
+	</head>
+	<body>
+		<table id="field"></table>
+		<p id="stats">Aktuelle Zuglänge: 1
+		<br>Dauer dieses Spieles: 0s<p>
+		<p align="center">
+			<font size="5">
+ 				<a href="/text/html/LocomotiveInstruction.html">Anleitung/Infos</a>
+        			<br>
+        			<a href="/">Home</a>
+      			</font>
+    		</p>
+	</body>
