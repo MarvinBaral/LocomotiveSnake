@@ -1,6 +1,6 @@
 # LocomotiveSnake
 
-Author: Marvin Baral (github@marvinbaral.de)
+Author: Marvin Baral
 
 The well known snake game but with locomotives and waggons instead of snake.
 
